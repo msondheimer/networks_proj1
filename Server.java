@@ -7,7 +7,7 @@ public class Server{
     public static String requestPath;
     public static int statusCode;
     public static String protocol = "HTTP/1.1";
-    public static int contentLength = 0;
+    public static long contentLength = 0;
     public static String response = "";
     public static String connectionStatus;
     public static String extension;
@@ -96,13 +96,15 @@ public class Server{
         try{
             //*** error is at requestFile trying to write the response back to the server before we close the connection
             File responseFile = new File(requestPath);
-            Scanner responseScan = new Scanner(responseFile);
+//            Scanner responseScan = new Scanner(responseFile);
+//
+//
+//            while(responseScan.hasNextLine()){
+//                String tempresponse = responseScan.nextLine();
+//                contentLength += tempresponse.length();
+//            }
 
-
-            while(responseScan.hasNextLine()){
-                String tempresponse = responseScan.nextLine();
-                contentLength += tempresponse.length();
-            }
+            contentLength = responseFile.length();
 
             System.out.println(contentLength);
 
