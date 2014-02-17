@@ -98,40 +98,46 @@ public class Server{
             File responseFile = new File(requestPath);
             Scanner responseScan = new Scanner(responseFile);
 
+
             while(responseScan.hasNextLine()){
-                response += responseScan.nextLine();
-                contentLength += response.length();
-                System.out.println(response);
+                String tempresponse = responseScan.nextLine();
+                contentLength += tempresponse.length();
             }
+
+            System.out.println(contentLength);
 
         }
         catch(Exception e){
         }
 
+
         java.util.Date date1 = new java.util.Date();
         out.println(protocol + " " + statusCode + " OK\n"
-                + "Date: "+date1 + "\n"
+                +date1 + "\n"
                 + "Accept-Ranges: bytes\n"
-                + "Content-Length: "+contentLength+"\n"
-                + "Connection: " + connectionStatus + "\n"
+                + "Content-Length: "+ contentLength+"\n"
+                + "Connection: "+ connectionStatus + "\n"
                 + "Content-Type: "+ extension+"\r\n");
 
-        System.out.println(protocol + " " + statusCode + " OK\n"
-                + "Date: "+date1 + "\n"
-                + "Accept-Ranges: bytes\n"
-                + "Content-Length: "+contentLength+"\n"
-                + "Connection: " + connectionStatus + "\n"
-                + "Content-Type: "+ extension+"\r\n");
+        try{
+            //*** error is at requestFile trying to write the response back to the server before we close the connection
+            File responseFile = new File(requestPath);
+            Scanner responseScan = new Scanner(responseFile);
 
-        out.println(response);
+            while(responseScan.hasNextLine()){
+                String response = responseScan.nextLine();
+                out.println(response);
+            }
+
+        }
+        catch(Exception e){
+        }
     }
+
+
 
     public static void processRequest(String request, PrintWriter out){
         String[] requestTokens = request.split(" ");
-//        System.out.println(request);
-//        int index = requestTokens[2].indexOf("Host:");
-//        System.out.println(index);
-//        protocol = requestTokens[2].substring(0,index);
 
         if(requestTokens[0].equals("GET") || requestTokens[0].equals("HEAD")){
             //System.out.println("in GET/HEAD statement");
