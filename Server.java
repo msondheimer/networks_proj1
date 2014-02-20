@@ -1,3 +1,5 @@
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.util.*;
 import java.net.*;
 import java.io.*;
@@ -11,6 +13,7 @@ public class Server{
     public static String response = "";
     public static String connectionStatus;
     public static String extension;
+    public static String redirectPath = "";
 
     public static String checkRedirects(String filePath){
         try{
@@ -22,7 +25,7 @@ public class Server{
 
                 String[] tokens = redirect.split(" ");
 
-                if(tokens[0].equals(filePath)){
+                if(tokens[0].equals("/"+filePath)){
                     return tokens[1];
                 }
             }
@@ -38,6 +41,7 @@ public class Server{
         String[] tokens = filePath.split("\\.");
         System.out.println(tokens[0]);
 
+        if(tokens.length != 1){
         if (tokens[1].equals("html") || tokens[1].equals("htm")){
             extension = "text/html";
         }
@@ -56,6 +60,10 @@ public class Server{
         else {
             extension = "application/octet-stream";
         }
+        }
+        else{
+            extension = "application/octet-stream";
+        }
 
 
         try{
@@ -65,20 +73,12 @@ public class Server{
                 requestPath = filePath;
                 statusCode = 200;
                 return true;
-                //status = 200
-                //send the response
             }
             else{
-                if(checkRedirects(filePath) != null){
-                    if(checkFilePath(filePath)){
-                        requestPath = filePath;
-                        statusCode = 301;
-                        return true;
-                    }
-                    else{
-                        statusCode = 404;
-                        return false;
-                    }
+                if((redirectPath = checkRedirects(filePath)) != null){
+                    System.out.println(redirectPath);
+                    statusCode = 301;
+                    return true;
                 }
                 else{
                     statusCode = 404;
@@ -92,44 +92,84 @@ public class Server{
     }
 
 
-    public static void generateReponse(String filePath, PrintWriter out){
-        try{
-            //*** error is at requestFile trying to write the response back to the server before we close the connection
-            File responseFile = new File(requestPath);
-//            Scanner responseScan = new Scanner(responseFile);
+    public static void generateReponse(String filePath, DataOutputStream out) throws Exception{
+//        try{
+//            //*** error is at requestFile trying to write the response back to the server before we close the connection
+//            File responseFile = new File(requestPath);
 //
+//            contentLength = responseFile.length();
 //
-//            while(responseScan.hasNextLine()){
-//                String tempresponse = responseScan.nextLine();
-//                contentLength += tempresponse.length();
-//            }
-
-            contentLength = responseFile.length();
-
-            System.out.println(contentLength);
-
-        }
-        catch(Exception e){
-        }
+//            System.out.println(contentLength);
+//
+//        }
+//        catch(Exception e){
+//        }
 
 
         java.util.Date date1 = new java.util.Date();
-        out.println(protocol + " " + statusCode + " OK\n"
-                +date1 + "\n"
-                + "Accept-Ranges: bytes\n"
-                + "Content-Length: "+ contentLength+"\n"
-                + "Connection: "+ connectionStatus + "\n"
-                + "Content-Type: "+ extension+"\r\n");
+        System.out.println(statusCode);
+
+        String s = protocol + " " + statusCode + " Moved Permanently\n"
+                 + "Location: "+redirectPath+"\r\n";
+//                 +protocol + " " + statusCode + " OK\n"
+//                +date1 + "\n"
+//                + "Accept-Ranges: bytes\n"
+//                + "Content-Length: "+ contentLength+"\n"
+//                //+ "Content-Length: 500000"+"\n"
+//                + "Connection: "+ connectionStatus + "\n"
+//                + "Content-Type: "+ extension+"\r\n";
+
+
+        out.write(s.getBytes());
+        out.write("\r\n".getBytes());
+
+//        out.write(b);
+        System.out.println(s);
 
         try{
             //*** error is at requestFile trying to write the response back to the server before we close the connection
-            File responseFile = new File(requestPath);
-            Scanner responseScan = new Scanner(responseFile);
+//            File responseFile = new File(requestPath);
+//            Scanner responseScan = new Scanner(responseFile);
+            //HTML FILES   TEXT TOO
+//            while(responseScan.hasNextLine()){
+//                String response = responseScan.nextLine();
+//                out.writeBytes(response);
+//                out.writeBytes("\r\n");
+//            }
 
-            while(responseScan.hasNextLine()){
-                String response = responseScan.nextLine();
-                out.println(response);
-            }
+
+            //WORKS PDF PART 1 USE THIS ONE!!!!!!
+//            byte[] buf = new byte[(int)contentLength];
+//            InputStream is = new FileInputStream(responseFile);
+//
+//            int c =0;
+//            while ((c = is.read(buf, 0, buf.length)) > 0){
+//                out.write(buf);
+//            }
+
+//            is.close();
+
+            //WORKS PDF PART 2
+//            byte [] buffer = new byte[8192];
+//            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//
+//            int bytesRead;
+//
+//            InputStream is = new FileInputStream(responseFile);
+//            while ((bytesRead = is.read(buffer))!= -1){
+//                baos.write(buffer, 0, bytesRead);
+//            }
+//
+//           out.write(baos.toByteArray());
+//           out.write("\r\n".getBytes());
+//           is.close();
+//           baos.close();
+
+
+
+            //*****IMAGES JPG*******
+            //BufferedImage responseScan = ImageIO.read(responseFile);
+            // ImageIO.write(responseScan, "jpg", out);
 
         }
         catch(Exception e){
@@ -138,7 +178,7 @@ public class Server{
 
 
 
-    public static void processRequest(String request, PrintWriter out){
+    public static void processRequest(String request, DataOutputStream out) throws Exception{
         String[] requestTokens = request.split(" ");
 
         if(requestTokens[0].equals("GET") || requestTokens[0].equals("HEAD")){
@@ -157,7 +197,7 @@ public class Server{
         }
     }
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws Exception{
         //right now dealing with non persistent connections so connection status is close
         connectionStatus = "close";
         //checking for the port syntax
@@ -169,8 +209,12 @@ public class Server{
 
         ServerSocket echoConnection = null;
         Socket echoClient = null;
-        PrintWriter out = null;
+       // PrintWriter out = null;
+
+        DataOutputStream out  = null;
         BufferedReader in = null;
+
+
 
         try{
             int equalIndex = args[0].indexOf('=');
@@ -181,9 +225,12 @@ public class Server{
             System.out.println("Server is started");
             echoClient = echoConnection.accept();
 
-            //open the input and output stream
-            out = new PrintWriter(echoClient.getOutputStream(), true);
+            //open the input and output stream  , had to get rid of you true
+
+
+            out = new DataOutputStream(echoClient.getOutputStream());
             in = new BufferedReader(new InputStreamReader(echoClient.getInputStream()));
+
 
             //got request from client
             String request = "";
